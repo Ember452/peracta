@@ -1,0 +1,4 @@
+# Keep line endings identical across Windows / macOS / Linux: LF everywhere.
+# Added early on purpose: with only a handful of files, enforcing this is free;
+# later it would require a renormalization commit touching every file.
+* text=auto eol=lf
