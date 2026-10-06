@@ -64,7 +64,7 @@ peracta verify examples/refund_agent.py --fault crash --at every-step --repeat 5
                                                             # A3 duplicate side effects must be 0
 ```
 
-> ⚠️ These are the locked V0.1 target interfaces, **not implemented yet** — see the status table below.
+> ⚠️ These are the locked V0.1 target interfaces. `run` / `resume` are implemented (see the status table below and `examples/`); `effect` / `replay` / `verify` belong to T4 / T5 and are not implemented yet.
 
 ## How it relates to existing work
 
@@ -84,17 +84,17 @@ peracta verify examples/refund_agent.py --fault crash --at every-step --repeat 5
 
 ## Status
 
-**The kernel's three layers (core / journal / runtime) have landed with all 99 tests green; the CLI and fault-injection verification come next.**
+**The durable kernel and its CLI have landed (plan one complete), with hard-kill resume verified end to end. V0.1 remains: effect idempotency (T4) and fault-injection verification (T5).**
 
 | Task card | Scope | Status |
 |---|---|---|
 | T1 | Skeleton: pyproject / src / pytest / ruff / CI | ✅ |
 | T2 | SQLite event journal (runs / events; claims deferred to T4 by plan) | ✅ |
-| T3 | Step recording + resume skipping done steps | 🔶 library level done, CLI pending |
+| T3 | Step recording + resume skipping done steps | ✅ |
 | T4 | Effect idempotency (claim first) + reconcile for unknown states | ⬜ |
 | T5 | verify fault injection + the deliberately broken counterexample | ⬜ |
 
-Done: four spec documents, target-state panel diagrams, collaboration guidelines; the kernel layers `@flow` / `Context.step` / resumable `execute`, the SQLite event journal, architecture guards and 99 tests.
+Done: four spec documents, target-state panel diagrams, collaboration guidelines; the kernel layers `@flow` / `Context.step` / resumable `execute`, the SQLite event journal, the CLI (run / resume / ps), architecture guards and 103 tests (including an end-to-end hard-kill resume run).
 
 ## Documentation
 

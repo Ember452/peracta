@@ -64,7 +64,7 @@ peracta verify examples/refund_agent.py --fault crash --at every-step --repeat 5
                                                             # A3 重复副作用必须为 0
 ```
 
-> ⚠️ 以上是 V0.1 锁定的目标接口，**尚未实现** —— 进度见下方状态表。
+> ⚠️ 以上是 V0.1 锁定的目标接口。其中 run / resume 已实现（见下方状态表与 `examples/`），effect / replay / verify 属 T4 / T5，尚未实现。
 
 ## 与现有方案的关系
 
@@ -84,17 +84,17 @@ peracta verify examples/refund_agent.py --fault crash --at every-step --repeat 5
 
 ## 当前状态
 
-**内核三层（core / journal / runtime）已落地，99 项测试全绿；CLI 与故障注入验证还在后面。**
+**持久化内核与 CLI 已落地（计划一完成），kill -9 后断点续跑已端到端验证；V0.1 还剩 effect 幂等（T4）与故障注入验证（T5）。**
 
 | 任务卡 | 内容 | 状态 |
 |---|---|---|
 | T1 | 骨架：pyproject / src / pytest / ruff / CI | ✅ |
 | T2 | SQLite 事件日志（runs / events；claims 按计划延至 T4） | ✅ |
-| T3 | step 录制 + resume 跳过已完成步骤 | 🔶 库层面完成，CLI 待做 |
+| T3 | step 录制 + resume 跳过已完成步骤 | ✅ |
 | T4 | effect 幂等（先留凭据）+ reconcile 未知态 | ⬜ |
 | T5 | verify 故障注入 + 故意坏掉的反例 | ⬜ |
 
-已完成：四份规格文档、目标态面板图、协作准则；`@flow` / `Context.step` / 可续跑 `execute` 三层内核、SQLite 事件日志、架构守卫与 99 项测试。
+已完成：四份规格文档、目标态面板图、协作准则；`@flow` / `Context.step` / 可续跑 `execute` 内核、SQLite 事件日志、CLI（run / resume / ps）、架构守卫与 103 项测试（含真 `kill -9` 断点续跑端到端）。
 
 ## 文档
 
