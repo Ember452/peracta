@@ -7,21 +7,15 @@
 
 ---
 
-## 硬规则速查
+## 红线兜底
 
-> 下面这段是 AGENTS.md §2–§4 的最小复述，**故意保留**：万一上面的导入未生效，
-> 这几条也必须能被读到。改动时请与 AGENTS.md 同步（只改一处）。
+> 本节**只保留三条不可协商项**，仅当上方 `@AGENTS.md` 导入未生效时才需要看这里。
+> 其余一切规则**不在本文复述**（避免双源漂移）—— AGENTS.md 是唯一权威来源。
+> 本节只在 AGENTS.md 的红线本身变化时才动。
 
-1. **未经用户明确指令，绝不 commit、绝不 push、绝不打 tag、绝不发布 PyPI。**
-   执行前先展示 `git status` + `git diff --stat`，等用户确认。
-   "改好了" **不等于**许可。
-2. **commit message 一律英文**（Conventional Commits：`feat:` / `fix:` / `test:` / `docs:` / `refactor:` / `chore:`）。
-   禁止 `git add -A`、`--force`、`--no-verify`、`git reset --hard`、改写历史。
-3. 环境：**Python 3.13** + **uv** 管理 + **ruff**（lint/format）+ pytest。
-   命令一律 `uv run ...`。
-4. **运行时依赖 0 个**；新增依赖必须先说明理由并获得批准。
-5. 四条门禁全绿才算完成：`ruff check` · `ruff format --check` · `pytest` · 架构守卫测试。
-6. 只改必须改的；**每一行改动都要能追溯到用户的请求**。
+1. **未经用户明确指令，绝不 commit / push / 打 tag / 发布 PyPI。**"改好了" **不等于**许可。
+2. **运行时依赖 0 个**；新增依赖必须先获批准。
+3. **禁止跳过 pre-commit hook**；禁止 `git add -A` / `--force` / `git reset --hard` / 改写历史。
 
 ---
 
