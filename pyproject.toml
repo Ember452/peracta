@@ -33,6 +33,9 @@ packages = ["src/peracta"]
 line-length = 100
 target-version = "py313"
 src = ["src", "tests"]
+# Markdown 中的 ```python 围栏是文档示例，不是源码；排除 *.md，
+# 使全仓格式化门禁（ruff format --check .）只针对 Python 代码、保持其意义。
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
@@ -42,4 +45,3 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
