@@ -41,3 +41,7 @@ desktop.ini
 .peracta/
 *.sqlite
 *.sqlite3
+
+# --- SDD workspace / local worktrees ---
+.superpowers/
+.worktrees/
