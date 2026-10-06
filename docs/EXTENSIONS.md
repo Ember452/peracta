@@ -1,9 +1,9 @@
 # Peracta 扩展方向
 
-> 状态：**灵感库 / 非承诺 / 无准入效力** ｜ 2026-10-05
+> 状态：**灵感库 / 非承诺 / 无准入效力** ｜ 2026-10-05（§10.1 / §10.2 深扫于 2026-10-06）
 >
 > 本文回答：**这个项目将来可以长成什么。** 记录得尽量全，包括借鉴自同类项目的能力（雷同无妨）。
-> 与另两份文档的关系：[PROJECT.md](PROJECT.md) 是**约束**（现在做什么）；[FEATURES.md](FEATURES.md) 是**产品功能地图**（这代产品是什么）；本文是**未来方向**（可能长成什么）。
+> 与其他文档的关系：[PROJECT.md](PROJECT.md) 是**约束**（现在做什么）；[FEATURES.md](FEATURES.md) 是**产品功能地图**（这代产品是什么）；[STRUCTURE.md](STRUCTURE.md) 是**结构规范**（代码长在哪、依赖朝哪走）；本文是**未来方向**（可能长成什么）。
 >
 > **本文不产生任何义务。** 任何条目要进入实际开发，仍须过 PROJECT.md §2.2 那条唯一准入判据。
 > 记号：🟢 与现有路线图相邻 ｜ 🟡 需要额外前置 ｜ 🔴 研究性质
@@ -14,7 +14,7 @@
 
 如果只挑五个做，挑这五个 —— 它们各自都能撑起一篇技术分享。
 
-### E-1 🟢 **确定性仿真测试引擎（DST）**
+### 深-1 🟢 **确定性仿真测试引擎（DST）**
 
 把真实时钟、随机源、IO、调度点全部虚拟化，让"崩溃"从**随机事件**变成**可枚举输入**。
 
@@ -22,28 +22,28 @@
 - **验收设想**：给定种子必复现同一次崩溃；种子最小化能把 10 万事件的失败缩到 20 个事件以内。
 - **参照**：FoundationDB / TigerBeetle / Antithesis 的路线。
 
-### E-2 🟢 **账本协议的模型检验**
+### 深-2 🟢 **账本协议的模型检验**
 
 用 TLA+（或 Alloy）把预占状态机写成规格，用 TLC 穷举验证"至多一次执行"与"无孤儿预占"。
 
 - **深度**：形式化建模 + 状态空间削减。能发现单元测试永远发现不了的边界（例如"补偿执行中途崩溃"的复合情形）。
 - **验收设想**：故意在规格里注入 bug，TLC 必须报出；规格与实现对拍。
 
-### E-3 🟢 **不可篡改的事件日志（哈希链）**
+### 深-3 🟢 **不可篡改的事件日志（哈希链）**
 
 每条事件携带前序哈希，形成可校验的链；改一条历史事件必然被发现。
 
 - **深度**：追加写下的链式校验、并发写入时的定序、批量校验性能；进一步可做 Merkle 树锚点，支持"某次副作用包含在某个历史状态"的包含证明。
 - **验收设想**：手工篡改一条历史事件，校验器必须定位到该事件。
 
-### E-4 🟡 **跨过程副作用静态分析**（借自 actenon-scan）
+### 深-4 🟡 **跨过程副作用静态分析**（借自 actenon-scan）
 
 从入口（`@flow` / `@tool` / MCP 装饰器）沿调用图追到真实副作用 sink。
 
 - **深度**：动态语言的解析不确定性必须被**显式建模**（见 C2 的边确定性三态）；效果摘要沿强连通分量迭代到不动点以处理递归。
 - **验收设想**：一个 `@tool` 只调用 helper、helper 里 `requests.post` 的经典样例必须被抓到。
 
-### E-5 🟡 **差分测试 / 语义一致性套件**
+### 深-5 🟡 **差分测试 / 语义一致性套件**
 
 同一份工作流在两个引擎下运行（Peracta vs Temporal/其他），比较副作用序列与最终状态。
 
@@ -71,7 +71,7 @@
 
 | ID | 功能 | 深度在哪 | 状态 |
 |---|---|---|---|
-| B1 | 哈希链日志（见 E-3） | 链式校验 + 并发定序 + 批量校验性能 | 🟢 |
+| B1 | 哈希链日志（见 深-3） | 链式校验 + 并发定序 + 批量校验性能 | 🟢 |
 | B2 | Merkle 锚点与包含证明 | 离线证明"某次副作用在某个历史状态里"，支撑审计 | 🟡 |
 | B3 | 签名回执 | 谁、何时、对哪个 key、结果摘要；密钥管理与离线验证 | 🟡 |
 | B4 | `doctor` 式取证诊断 | 检测日志损坏、schema 不匹配、孤儿预占、时钟回退；**只读诊断优先**，不破坏证据链 | 🟢 |
@@ -196,6 +196,85 @@
 
 **为什么最后三条标"最高"**：它们不是功能，是**信任机制**。一个声称"能证明你没问题"的工具，如果把"我证明不了什么"公开写清楚，可信度会比多十个特性高一个量级。这与本项目承诺 0（只声明观测到的事实）是同一件事。
 
+### 10.1 代码级深扫：能落进 peracta 的东西（2026-10-06）
+
+> 扫描对象：`actenon-scan` v1.6.0（Apache-2.0，产品代码 ≈29.7k 行 / 测试 ≈23.6k 行，零运行时依赖）。
+> 与 §10 的分工：§10 是**能力级**对照（将来长什么功能）；本节是**代码级**结论（写 T2–T5 时手边能直接用的东西）。
+> **许可证注记**：Apache-2.0 代码可并入 MIT 项目；但逐字或轻度改写的代码**必须保留原版权声明**（文件头注明来源仓库与文件），仅借鉴思想无需声明。出处行号以 2026-10-06 的工作区副本为准。
+
+**A. 直接可复用（片段 ≤50 行，改名即可进 peracta）**
+
+| # | 借鉴点 | 出处 | 落点 | 卡 |
+|---|---|---|---|---|
+| A1 | 最弱链聚合器：显式整数序 + `min` 取最弱；`ANALYSIS_ERROR` 编码为 -1 支配一切，与 `UNKNOWN`（不知道）/ `UNSUPPORTED`（做不了）三态分开 | `repository/certainty.py:39-63` | verify 报告的置信度聚合、对账结论聚合 | T5 |
+| A2 | **封闭词汇不可排序**：`str` Enum 子类把 `__lt__`/`__le__`/`__gt__`/`__ge__` 全绑到同一个抛 `TypeError` 的函数 —— `max()`/`sorted()` 从此无法把 UNKNOWN 归并成别的状态 | `effects/vocabulary.py:18-25` | 所有封闭枚举：事件类型、预占状态、对账结论 | T2/T4 |
+| A3 | 原子写四件套：同目录 `mkstemp` → `os.replace` → 失败清理临时文件 → 降级为无缓存而非报错 | `cache.py:309-326` | 日志导出 / 快照写盘 / 报告落盘 | T2 |
+| A4 | 条目带 `entry_schema_version`，旧格式直接拒收、不做静默迁移 | `cache.py:174-179` | 事件 schema 版本化：读到不认识的旧事件宁可报损坏，不猜 | T2 |
+| A5 | 内容哈希幂等键：规范化 → SHA-256 截 16 位；**匹配键完全不含位置信息**，天然容忍漂移 | `baseline.py:16-21`、`engine.py:2038-2051` | effect 幂等键规范化的实现手法 | T4 |
+| A6 | 三态聚合用**显式分支序**而非比较运算：ERROR 支配 > CONFLICTING > UNKNOWN；有分歧不塌缩成单值 | `effects/claim.py:107-125` | resume 时 run 状态合并（崩溃 / 冲突 / 未知三态不互相掩盖） | T3/T4 |
+| A7 | `@dataclass(frozen=True)` + `__post_init__` 全量校验 + `object.__setattr__` 做规范化 | `effects/claim.py:985-1037` | 事件记录：append-only，坏数据在构造期就进不了日志 | T2 |
+
+**B. 思想与结构（要改写，不能照抄）**
+
+| # | 思想 | 出处 | 对 peracta 的意义 |
+|---|---|---|---|
+| B1 | **凭据自校验**：回执内嵌 claim 快照，构造期逐字段交叉重算，任何不一致即构造失败 | `effects/receipt.py:465-524` | resume/replay 前先从事件流重导出汇总并与账面比对 —— 日志自校验，损坏必被发现 |
+| B2 | 编解码器第一原则："缺失的必填数据是错误，永远不是 UNKNOWN 也不是 REFUTED" | `effects/_codec.py:1-5` | 事件反序列化：宁可崩溃，不静默降级 |
+| B3 | "0 发现 ≠ 安全"做成**不可关闭字段**：`may_render_as_safe` 不为 False 直接抛错 | `receipt.py:298-302` | verify 报告：没注入故障 / 覆盖为 0 时，绝不允许渲染成"通过"（A3/A4 的报告侧保险） |
+| B4 | "未执行的检查"与"检查后未发现问题"是**两个不同状态**（never-executed counts as incomplete, never as NOT_FOUND） | `receipt.py:345-348` | 检测器没跑到 ≠ 没检测出重复副作用 |
+| B5 | 零依赖边界写成测试：tomllib 断言 `dependencies == []` + `ast.walk` 禁第三方 import | `tests/test_protocol_drift.py:228-264` | `tests/architecture/` 加一条 —— 零依赖是测试断言，不是 README 口号 |
+| B6 | 对抗测试命名法：`test_X_remains_unknown` / `never_silently_bound` —— 断言"**保持未知**"而非"给出正确答案"；被攻破的测试改 `skip` + 注释保留，不删除 | `tests/adversarial/test_hostile_invariants.py` | A4 反例族与 reconcile 未知态测试的组织规范 |
+| B7 | 语料成对组织：`vulnerable/` + `safe/`，每用例 ≤10 行最小真实代码，safe 集防误报膨胀 | `tests/corpus/`（按后果类别 34 个目录） | verify 故障注入语料照此组织 |
+| B8 | `verify-claims` 模式：README 里每条可机器验证的声明 = 一行断言命令，失效即红 | `Makefile:13-33`、`scripts/check_readme_installs.py` | G1 的最小实现；README 写"零依赖"就要有测试背书 |
+| B9 | 机器格式输出与 TTY 无关（逐字节稳定）；重格式在分支内惰性 import | `cli.py:653-657`、`cli.py:728-743` | replay/verify 的 JSON 输出逐字节稳定是重放对比的**前提** |
+| B10 | 版本三方一致门禁：pyproject / git tag / 已发布版，用版本库比较而非字符串 | `scripts/check_version_coherence.py` | 发布前引入；T1 先立"版本单一来源"约定（见 STRUCTURE.md §7） |
+
+**C. 明确不搬（静态分析领域模型，与运行时内核不同构）**
+
+- AREF-002 证据阶梯（L0–L8）、probe registry、五人群 CoverageLedger 的领域划分 —— 只取元思想（分人群计数、只有确证阴性才算阴性），不搬模型
+- 污点六态格（UNTAINTED→UNKNOWN）、16 类 sink / 30+ 守卫模式 —— 内核不做污点分析（那是本文件主题 C 的事）
+- tree-sitter 多语言、SARIF / GitHub Action / pre-commit 分发面 —— 扫描器的分发形态；内核的分发面是 PyPI + 框架适配器（D1）
+
+### 10.2 代码级深扫：better-harness（2026-10-06）
+
+> 扫描对象：`better-harness` v0.7.0-alpha2（Qoder，**MIT**，Node 22 + TypeScript/ESM + Rust monorepo；scripts ≈9.4 万行、`packages/harness` ≈1.65 万行）。
+> 与 §10.1 的分工：actenon-scan 是**静态分析**，贡献的是纪律性代码片段；better-harness 的 `session-executor` 是一条**真执行管线**（检查点 → 凭据先落盘 → 隔离执行 → 完成回执），与 peracta 内核的**结构同构度更高**，直接覆盖 T2–T4 主链。
+> **硬限制**：语言生态完全不同（TS/Node，全 async），**一切条目只能翻译移植、不能复制粘贴**；MIT 无署名负担（仍建议注明来源）。async→sync 需手工降级。
+> **阅读指南**：全仓 95% 以上是"评测报告产品"，不必读。核心只有四个文件：`packages/harness/src/session-executor/core.ts`（+ `contracts.ts`）、`packages/harness/src/exec/events.ts`、`scripts/harness-component-snapshot/contract.mjs`、`scripts/harness-analysis/record-fix-output.mjs`。
+
+**A. 直接可复用（翻译级，≤50 行）**
+
+| # | 借鉴点 | 出处 | 落点 | 卡 |
+|---|---|---|---|---|
+| A1 | 域分隔哈希键：先验拒绝（长度 / `\0`）→ NFC 规范化 → 领域前缀 → sha256；id 直接由 canonical JSON 内容哈希派生（`"sep_" + sha256(...)`） | `harness-component-snapshot/contract.mjs:53-60`、`session-executor/core.ts:301-303` | effect 幂等键 / run·plan id 生成：标识即内容，篡改即失效 | T4 |
+| A2 | 确定性 canonical JSON + 码元比较器：递归按键排序后序列化；排序用显式 `<`/`>` 而**禁 `localeCompare`**（跨平台逐字节一致） | `contract.mjs:33-49`、`core.ts:94-103` | 事件序列化与重放定序 —— 重放逐字节一致的前提 | T2/T5 |
+| A3 | 严格反序列化守卫：拒数组、拒白名单外字段、`schemaVersion` 不符即抛 | `record-fix-output.mjs:112-123`、`memory/contract.mjs:8`、`harness-component-snapshot/contract.mjs:290-294` | journal 读回事件时的同一道闸 | T2 |
+| A4 | 错误码体系：`Error` 子类带 `readonly code` + `fail(code, msg)` 短函数 + 容错提取器 | `session-executor/contracts.ts:145-167`、`contract.mjs:11-23` | `core/errors.py` 的异常层级加稳定 code 层（与 CLI 退出码分离） | T2–T5 |
+| A5 | CLI 人机双输出 + 稳定错误码集合：`--machine` 出 JSON 错误文档，否则人读文本 + hint | `better-harness-cli/cli.mjs:305-320` | cli 子命令错误面（机器输出与 §10.1 B9 逐字节稳定呼应） | T5 |
+
+**B. 思想与结构（要改写，翻译移植）**
+
+| # | 思想 | 出处 | 对 peracta 的意义 |
+|---|---|---|---|
+| B1 | **（两轮扫描最值钱）prepared→complete 两阶段回执**：先原子写 `status:"prepared"`、`completedAt:null` 的回执，再执行真效果（`git update-ref`），成功后改写 `"complete"`；失败只清理"已写凭据但效果未发生"这一种状态，清理警告挂到错误对象上不吞；解释不了的状态显式报 `EXECUTION_INCOMPLETE` | `core.ts:683-782`（失败路径 747-764） | T4"先留凭据再执行 + reconcile"的运行时参照实现：prepared 且效果不存在 = 可安全重做；prepared 且效果已存在 = 已发生，进对账 |
+| B2 | **恢复状态自校验**：id=内容哈希；读回时重算全部 digest，任何漂移报 `PLAN_TAMPERED`；输出位置由 id **派生**而非自由字段；冻结检查点逐字段比对报 `CHECKPOINT_CHANGED` | `core.ts:301-303, 406-444` | T2/T3 崩溃后读回可信性的完整方案（比 §10.1 B1 的交叉重算更进一步：连位置都是派生的） |
+| B3 | **事件流生命周期不变式 + 相位机**：恰好一个 run-started / 一个 run-finished（携带 exitCode）；run-error 只能在中间；finished 后事件丢弃 —— 由 emitter 的相位机强制而非靠约定；**事件永不携带凭据形状字段**；工具结果有界截断（64KiB）+ `originalBytes` 记录原长 | `exec/events.ts:7, 20-46` | T2 事件 schema 的直接参照：序列合法性写进 emitter，脱敏与有界保留是一等设计决策 |
+| B4 | 独占锁 + 陈旧锁回收（mtime 超时）+ 截止时间 + 固定间隔轮询 | `record-fix-output.mjs:60-76` | 与 claims 表"陈旧预占回收"同构；SQLite 之前的文件锁兜底写法 | 
+| B5 | 反例自测加半边：`assert.throws(..., {code})` 断错误码之外，**还要断言没有副作用**（拒绝后 ref 未创建；独占写第二次报 `OUTPUT_EXISTS`） | `packages/harness/test/session-executor.test.ts:240-268` | T3/T4 测试规范：崩溃测试不只断言报错，还要断言账本干净 |
+| B6 | 生成物漂移门禁：重新生成 → `git diff --exit-code` 非空即红 | `packages/harness/package.json:86`（`check:generated`） | V0.1 可守 golden 报告（`--update` 的改动必须是有意的）；V0.2 若引入代码生成直接复用 |
+| B7 | 版本一致性机器核对：N 个分发清单版本逐一与主清单对比，不符 exit 1 | `npm-package/verify-pack.mjs:57-78` | 比 §10.1 B10 更精简的实现，发布前引入（STRUCTURE.md §7 已立单一来源约定） |
+| B8 | 不可变检查点与"物化"分离（ADR-0005）：引用保持不透明 + digest、不复制源字段；编辑历史 = 创建新身份，绝不悄悄改写历史 | `docs/adrs/checkpoint-backed-compare-sources.md:29-75` | "run 记录不可变、resume 不改写历史"的词汇与边界 |
+
+**C. 明确不借**
+
+- 评测/报告产品面（五维评分、findings、Studio/UI、Rust 桌面端、host 适配矩阵）—— 占仓 95% 体积，与内核无同构性
+- npm monorepo + 3 个运行时依赖 + Rust workspace 的工程规模 —— 与零依赖哲学相反，不效仿
+- 纯 async I/O 模型 —— V0.1 锁同步，只取降级后的同步等价物
+- 它的持久化形态（JSON 文件 + git ref）—— 不解决并发多 run 的查询需求，peracta 的 SQLite 路线不变
+- 缺失项（无可注入随机源、无 property 测试、无 golden 体系、无 0/1/2 退出码成文契约）—— 无东西可借，peracta 自建
+
+**两轮扫描合起来的结论**：actenon-scan 给**纪律性片段**（封闭枚举、最弱链、原子写、自校验回执思想），better-harness 给**同构运行时骨架**（两阶段凭据、内容寻址状态、事件生命周期不变式）。写 T2–T4 时两份清单对着用：先看 §10.2 定结构，再用 §10.1 的片段填纪律。
+
 ---
 
 ## 11. 长期非目标（每阶段重申）
@@ -215,3 +294,6 @@
 | 日期 | 变更 |
 |---|---|
 | 2026-10-05 | 初版：五大最深扩展、8 个主题 60+ 条、actenon-scan 借鉴对照表 |
+| 2026-10-06 | 新增 §10.1：actenon-scan 代码级深扫结论（A 直接复用 7 项 / B 思想 10 项 / C 不搬 3 类），含许可证注记 |
+| 2026-10-06 | 新增 §10.2：better-harness 代码级深扫结论（A 翻译移植 5 项 / B 思想 8 项 / C 不借 5 类）；session-executor 两阶段回执为两轮扫描中最高价值的运行时同构参照 |
+| 2026-10-06 | 撞号修复：§1 五条深扩展 E-1…E-5 → 深-1…深-5（主题 E 保留 E-1…E-8）；主题 B B1 交叉引用同步；头部"另两份文档"改为完整三份 |
