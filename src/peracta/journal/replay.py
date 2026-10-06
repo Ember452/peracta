@@ -22,13 +22,18 @@ class RunState:
     """从日志重建出的一次运行状态。
 
     `completed_steps` 只含真正完成过的步骤（键为步骤名，值为该步骤的结果），
-    `inputs` 取自 `RUN_STARTED` 的 payload。两者都是重建结果，不是日志本身。
+    `inputs` 取自 `RUN_STARTED` 的 payload，`result` 取自 `RUN_COMPLETED` 的 payload。
+    三者都是重建结果，不是日志本身。
+
+    `result` 是 Task 4 的续跑短路的返回来源：`runs.result` 只是可重建的派生物，
+    日志里那条 `RUN_COMPLETED` 才是"这次运行完成了、结果是这个"的权威记录。
     """
 
     run_id: str
     status: str
     completed_steps: dict[str, Any]
     inputs: dict[str, Any]
+    result: Any = None
 
 
 def build_run_state(events: list[Event]) -> RunState:
@@ -47,6 +52,7 @@ def build_run_state(events: list[Event]) -> RunState:
     inputs: dict[str, Any] = {}
     completed_steps: dict[str, Any] = {}
     status = STATUS_RUNNING
+    result: Any = None
 
     for event in events:
         if event.kind is EventKind.RUN_STARTED:
@@ -57,6 +63,9 @@ def build_run_state(events: list[Event]) -> RunState:
             completed_steps[event.step_name] = event.payload["result"]
         elif event.kind is EventKind.RUN_COMPLETED:
             status = STATUS_COMPLETED
+            # 与上面两处同样的严格读法：`result` 键缺失是日志损坏，不是"没有结果"。
+            # 返回 `None` 会让一次真的完成过的运行在续跑时看起来什么都没产出。
+            result = event.payload["result"]
         elif event.kind is EventKind.RUN_FAILED:
             status = STATUS_FAILED
 
@@ -65,4 +74,5 @@ def build_run_state(events: list[Event]) -> RunState:
         status=status,
         completed_steps=completed_steps,
         inputs=inputs,
+        result=result,
     )

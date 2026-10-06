@@ -91,8 +91,12 @@ def _resume(flow: Flow, store: JournalStore, clock: Clock, run_id: str) -> RunRe
 
     state = build_run_state(store.load_events(run_id))
     if state.status == STATUS_COMPLETED:
-        # 已经完成：不进入流程体，也不写任何事件，直接返回录制结果
-        return RunResult(run_id=run_id, status=STATUS_COMPLETED, result=run.result)
+        # 已经完成：不进入流程体，也不写任何事件，直接返回**日志里**录制的结果。
+        # `runs` 行与日志是两条独立的 autocommit 语句写下的，进程可能死在两者之间；
+        # 此时日志是权威，行只是派生物 —— 顺手按日志修回来，否则它会永远停在 running。
+        if run.status != state.status:
+            store.set_run_status(run_id, state.status, result=state.result)
+        return RunResult(run_id=run_id, status=STATUS_COMPLETED, result=state.result)
     return _drive(flow, store, clock, run_id, state.inputs, replay=state.completed_steps)
 
 

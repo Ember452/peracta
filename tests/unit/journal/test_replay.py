@@ -95,6 +95,28 @@ def test_run_completed_event_sets_completed_status() -> None:
     assert build_run_state(events).status == STATUS_COMPLETED
 
 
+def test_run_completed_carries_the_result_from_its_payload() -> None:
+    # `result` 是 Task 4 续跑短路的返回来源：`runs.result` 只是派生物，日志才是权威。
+    # 没有这条断言，"RunState 带回结果"这个契约就没有任何东西在守。
+    events = [
+        _started({}),
+        _event(2, EventKind.RUN_COMPLETED, payload={"result": {"answer": 42}}),
+    ]
+
+    assert build_run_state(events).result == {"answer": 42}
+
+
+def test_run_completed_without_a_result_key_is_rejected() -> None:
+    # 与 inputs 对称的严格读法：键缺失是日志损坏，不是"这次运行没有结果"。
+    # 静默退回 None 会让一次真的完成过的运行在续跑时看起来什么都没产出。
+    with pytest.raises(KeyError):
+        build_run_state([_started({}), _event(2, EventKind.RUN_COMPLETED, payload={})])
+
+
+def test_a_run_without_a_completion_event_has_no_result() -> None:
+    assert build_run_state([_started({})]).result is None
+
+
 def test_run_failed_event_sets_failed_status() -> None:
     events = [
         _started({}),

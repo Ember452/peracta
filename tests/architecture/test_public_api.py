@@ -20,6 +20,9 @@ EXPECTED_ALL = [
     "flow",
 ]
 
+# 唯一允许出现在包根上的模块属性：导入子模块时 Python 自动绑定的那三个名字。
+EXPECTED_SUBMODULES = {"core", "journal", "runtime"}
+
 
 def test_all_is_the_exact_sorted_contract() -> None:
     # 逐字相等而非"包含"：多导出一个名字同样是公共 API 面的变更
@@ -54,13 +57,15 @@ def test_every_export_is_the_real_object_from_its_layer() -> None:
 
 
 def test_no_accidental_public_names() -> None:
-    # 子模块会被导入机制自动绑成父包的同名属性（core / journal / runtime），
-    # 这是 Python 的固有行为、不是泄漏出来的 API，因此只对非模块值设限。
-    # 这条过滤不放宽真正的守卫：往包根多 import 一个 `Any` 之类仍会被抓出来。
+    # 子模块会被导入机制自动绑成父包的同名属性，这是 Python 的固有行为、不是泄漏出来的
+    # API，因此只豁免这三个确知的子模块名，且必须真的是模块。豁免名单是字面量而非
+    # `isinstance(value, types.ModuleType)` 这类整体放宽：往包根多 import 一个
+    # `from peracta.core import clock` 会绑定模块 `clock`，它不在名单里，仍会被抓出来。
     leaked = {
         name
         for name, value in vars(peracta).items()
-        if not name.startswith("_") and not isinstance(value, types.ModuleType)
+        if not name.startswith("_")
+        and not (name in EXPECTED_SUBMODULES and isinstance(value, types.ModuleType))
     } - set(peracta.__all__)
     assert leaked == set(), f"unexpected public names: {sorted(leaked)}"
 

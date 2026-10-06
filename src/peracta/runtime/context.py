@@ -23,6 +23,11 @@ class Context:
     `replay` 是"上一个进程已经完成"的步骤名到结果的映射，只应来自日志重建
     （`build_run_state().completed_steps`）。它只含真正完成过的步骤：崩在中途、
     只有 `STEP_STARTED` 的步骤不在其中，因此会被重新执行。
+
+    `current_step` 是给执行器读的"失败归属"指针：它只在步骤**正常返回**时恢复
+    （见 `step`），因此一个抛错后被流程体自己吞掉的步骤会把它留在原地；此后流程体里
+    再发生的失败就会被误记到那个早已结束的步骤名下。这是"恢复只在正常返回时发生"
+    这条规则的已知代价，写在这里而不是留成暗坑。
     """
 
     def __init__(
@@ -38,6 +43,8 @@ class Context:
         # 拷贝一份：调用方手里的是日志重建的结果，本对象的余生不应被外部改动影响
         self._replay: dict[str, Any] = dict(replay) if replay is not None else {}
         self._seen: set[str] = set()
+        # 只在步骤正常返回时恢复；回调抛错且被流程体吞掉时它会保持陈旧，
+        # 后续流程体里的失败会被误归到这一步。语义与理由见类 docstring。
         self.current_step: str | None = None
 
     @property

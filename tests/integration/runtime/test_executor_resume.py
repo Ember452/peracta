@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Iterator
 from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime
@@ -22,7 +23,7 @@ import pytest
 from peracta.core.clock import FixedClock
 from peracta.core.errors import ConfigurationError, FlowExecutionError, RunNotFoundError
 from peracta.core.events import EventKind
-from peracta.journal.replay import STATUS_COMPLETED, STATUS_FAILED
+from peracta.journal.replay import STATUS_COMPLETED, STATUS_FAILED, STATUS_RUNNING
 from peracta.journal.sqlite_store import SqliteJournal
 from peracta.runtime.context import Context
 from peracta.runtime.executor import RunResult, execute
@@ -43,6 +44,25 @@ def _count(name: str, value: int) -> int:
     """在 step 回调里累加真实执行次数，并返回该步骤的持久化结果。"""
     STEP_CALLS[name] = STEP_CALLS.get(name, 0) + 1
     return value
+
+
+def _lose_the_completion_write(journal_path: Path, run_id: str) -> None:
+    """用一条独立连接把 `runs` 行退回"完成之前"的样子，复现真实的崩溃窗口。
+
+    `append_event(RUN_COMPLETED)` 与 `set_run_status(...)` 是两条 autocommit 语句；
+    进程若死在两者之间，日志里已经有 `RUN_COMPLETED`，而 `runs` 行仍是
+    `running` / NULL。这里绕开被测代码把这个中间态手工造出来（不 mock），
+    确保"以日志为准并修复行"这条路径真的被覆盖。
+    """
+    conn = sqlite3.connect(journal_path)
+    try:
+        conn.execute(
+            "UPDATE runs SET status = ?, result_json = NULL WHERE run_id = ?",
+            (STATUS_RUNNING, run_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def _step_c() -> int:
@@ -154,6 +174,44 @@ def test_completed_run_is_returned_without_executing_anything(journal_path: Path
     assert STEP_CALLS == {}, "已完成的 run 不得执行任何步骤"
     assert FLOW_BODY_CALLS == 1, "已完成的 run 连流程体都不应进入"
     assert events_after == events_before, "已完成的 run 不得追加任何事件"
+
+
+def test_resume_returns_the_logged_result_and_repairs_a_stale_run_row(journal_path: Path) -> None:
+    """日志说完成、`runs` 行仍是 running/NULL：以日志为准返回结果，并把行修回来。
+
+    这是"日志是权威"的可观测形态：`RUN_COMPLETED` 已经落盘，所以这次运行确实完成了，
+    它的结果只能来自事件 payload —— `runs.result_json` 只是可以被重建的派生物。
+    修复只允许动那一行，不得重跑流程、不得改写日志。
+    """
+    global CRASH_IN_C
+    CRASH_IN_C = False
+
+    with SqliteJournal(journal_path) as journal:
+        first = execute(counting_flow, journal, CLOCK, inputs={"token": "logged"})
+        assert (first.status, first.result) == (STATUS_COMPLETED, 6)
+        assert FLOW_BODY_CALLS == 1
+        events_before = journal.load_events(first.run_id)
+
+        # 造出"事件已提交、状态行未提交"的中间态，并确认它确实生效
+        _lose_the_completion_write(journal_path, first.run_id)
+        stale = journal.get_run(first.run_id)
+        assert stale is not None
+        assert (stale.status, stale.result) == (STATUS_RUNNING, None)
+
+        STEP_CALLS.clear()
+
+        repaired = execute(counting_flow, journal, CLOCK, run_id=first.run_id)
+
+        record = journal.get_run(first.run_id)
+        events_after = journal.load_events(first.run_id)
+
+    assert repaired.status == STATUS_COMPLETED
+    assert repaired.result == 6, "结果必须来自日志里的 RUN_COMPLETED，而不是 NULL 的 runs 行"
+    assert record is not None
+    assert (record.status, record.result) == (STATUS_COMPLETED, 6), "陈旧的行必须按日志修复"
+    assert STEP_CALLS == {}, "修复不得重跑任何步骤"
+    assert FLOW_BODY_CALLS == 1, "修复不得进入流程体"
+    assert events_after == events_before, "修复只动 runs 行，不得追加事件"
 
 
 def test_resume_with_a_mismatched_flow_name_is_rejected(journal_path: Path) -> None:
