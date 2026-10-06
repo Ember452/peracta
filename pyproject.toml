@@ -1,5 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "peracta"
 version = "0.1.0"
+description = "Durable execution kernel for AI agents: completed work is never redone."
+readme = "README.md"
 requires-python = ">=3.13"
+license = { text = "MIT" }
 dependencies = []
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+
+[project.scripts]
+peracta = "peracta.cli.main:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "pre-commit>=3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/peracta"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# 本项目 docstring 与注释按协作准则使用中文：全角标点（：，）是正常书写，
+# 不是形近字符混淆，故关闭 RUF001/RUF002/RUF003 三条歧义 Unicode 规则。
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
