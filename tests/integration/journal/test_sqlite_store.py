@@ -11,6 +11,7 @@ import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -64,6 +65,25 @@ def test_appends_and_reads_events_in_seq_order(journal_path: Path) -> None:
     assert [event.step_name for event in events] == [None, "first"]
     assert events[0].payload == {"flow": "demo"}
     assert events[0].created_at == "t1"
+
+
+def test_load_events_returns_only_the_requested_runs_events(journal_path: Path) -> None:
+    # 两次运行的日志同处一张表：少了 `WHERE run_id = ?`，另一次运行的事件就会被折进
+    # 本次运行的状态里（Task 4 的重放路径正建立在这条谓词上）
+    with SqliteJournal(journal_path) as journal:
+        journal.create_run(_record("run_1"))
+        journal.create_run(_record("run_2"))
+        journal.append_event("run_1", EventKind.RUN_STARTED, None, {"flow": "one"}, "t1")
+        journal.append_event("run_2", EventKind.RUN_STARTED, None, {"flow": "two"}, "t2")
+        journal.append_event("run_1", EventKind.RUN_COMPLETED, None, {"result": 1}, "t3")
+
+        first = journal.load_events("run_1")
+        second = journal.load_events("run_2")
+
+    assert [event.run_id for event in first] == ["run_1", "run_1"]
+    assert [event.payload for event in first] == [{"flow": "one"}, {"result": 1}]
+    assert [event.run_id for event in second] == ["run_2"]
+    assert [event.payload for event in second] == [{"flow": "two"}]
 
 
 def test_run_and_events_survive_reopening_the_file(journal_path: Path) -> None:
@@ -183,11 +203,50 @@ def test_each_write_is_committed_before_close(journal_path: Path) -> None:
         assert _raw(journal_path, "SELECT COUNT(*) FROM events")[0][0] == 1
 
 
+def test_leaving_the_with_block_closes_the_connection(journal_path: Path) -> None:
+    # 上下文管理器契约：`__exit__` 必须真的关闭连接。若它退化成 pass，下面不会抛错，
+    # 而"忘了关"正是会累积文件句柄与 SQLite 锁的那类问题
+    with SqliteJournal(journal_path) as journal:
+        journal.create_run(_record())
+
+    with pytest.raises(sqlite3.ProgrammingError):
+        journal.get_run("run_1")
+
+
 def test_file_is_left_in_wal_mode(journal_path: Path) -> None:
     with SqliteJournal(journal_path) as journal:
         journal.create_run(_record())
 
     assert _raw(journal_path, "PRAGMA journal_mode")[0][0] == "wal"
+
+
+def test_connection_runs_with_synchronous_full(journal_path: Path) -> None:
+    # synchronous 是每连接的设置、不落盘，只能在活着的连接上读回有效值：
+    # 2 == FULL —— 已确认的写入必须真的 fsync 落盘，而不是只交给操作系统缓存
+    with SqliteJournal(journal_path) as journal:
+        journal.create_run(_record())
+
+        assert journal._conn.execute("PRAGMA synchronous").fetchone()[0] == 2
+
+
+def test_synchronous_full_is_set_explicitly_not_inherited(
+    monkeypatch: pytest.MonkeyPatch, journal_path: Path
+) -> None:
+    # SQLite 的编译期默认恰好也是 FULL(2)，所以单靠"读回有效值"发现不了这行 pragma 被删掉。
+    # 这里让连接以更低的 synchronous 起步：只有构造期真的写了 FULL，才可能读回 2
+    real_connect = sqlite3.connect
+
+    def connect_with_a_lower_default(*args: Any, **kwargs: Any) -> sqlite3.Connection:
+        conn = real_connect(*args, **kwargs)
+        conn.execute("PRAGMA synchronous = OFF")
+        return conn
+
+    monkeypatch.setattr(sqlite3, "connect", connect_with_a_lower_default)
+
+    with SqliteJournal(journal_path) as journal:
+        journal.create_run(_record())
+
+        assert journal._conn.execute("PRAGMA synchronous").fetchone()[0] == 2
 
 
 def test_schema_version_and_both_tables_are_recorded_in_the_file(journal_path: Path) -> None:

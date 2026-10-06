@@ -62,10 +62,18 @@ def test_completed_run_rebuilds_inputs_steps_and_running_status() -> None:
     assert state.status == STATUS_RUNNING
 
 
-def test_run_started_without_inputs_key_rebuilds_empty_inputs() -> None:
-    state = build_run_state([_event(1, EventKind.RUN_STARTED, payload={"flow": "demo"})])
+def test_run_started_with_an_empty_inputs_mapping_rebuilds_empty_inputs() -> None:
+    # "这次运行的输入确实是空的"与"根本没有 inputs 键"是两件事，前者是合法输入
+    assert build_run_state([_started({})]).inputs == {}
 
-    assert state.inputs == {}
+
+def test_run_started_without_an_inputs_key_is_rejected() -> None:
+    # brief 绑定 `payload["inputs"]`（索引，不是 .get）：键缺失必须响亮失败。
+    # `build_run_state().inputs` 是 Task 4 续跑路径的输入来源，静默退回 {} 会让一个
+    # 损坏的日志变成"这次运行没有任何输入"，正是本层最不该有的失败模式 ——
+    # 与 `payload["result"]` 的处理保持对称。
+    with pytest.raises(KeyError):
+        build_run_state([_event(1, EventKind.RUN_STARTED, payload={"flow": "demo"})])
 
 
 def test_step_started_without_completion_is_not_replayable() -> None:

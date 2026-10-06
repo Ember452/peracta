@@ -50,7 +50,9 @@ def build_run_state(events: list[Event]) -> RunState:
 
     for event in events:
         if event.kind is EventKind.RUN_STARTED:
-            inputs = dict(event.payload.get("inputs", {}))
+            # 索引而非 `.get`：`inputs` 缺失说明日志本身有问题，必须响亮失败。
+            # 静默退回 {} 会让 Task 4 拿一个损坏的日志去"无输入续跑"。
+            inputs = dict(event.payload["inputs"])
         elif event.kind is EventKind.STEP_COMPLETED and event.step_name is not None:
             completed_steps[event.step_name] = event.payload["result"]
         elif event.kind is EventKind.RUN_COMPLETED:
