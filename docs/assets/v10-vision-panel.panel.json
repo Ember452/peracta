@@ -1,0 +1,227 @@
+{
+ "meta": { "title": "peracta V1.0 — full vision after all extensions", "lang": "zh" },
+ "canvas": { "preset": "4:5", "width": 1200, "height": 1500, "duration": 34, "fps": 30, "preroll": 16 },
+ "theme": {
+  "preset": "terminal-dark",
+  "font": "\"JetBrains Mono\",\"IBM Plex Mono\",\"DejaVu Sans Mono\",\"Noto Sans Mono CJK SC\",monospace",
+  "fontSize": 21,
+  "lineHeight": 30.7,
+  "colors": {
+   "bg": "#14171c", "bar": "#262a32", "line": "#4a5367", "line2": "#3a4154",
+   "dim": "#6f788c", "mute": "#aab1c0", "fg": "#e4e8f0", "wh": "#ffffff",
+   "cy": "#86e1e6", "bl": "#8fb4f6", "gr": "#7fdba8", "pu": "#b9a2f2",
+   "ye": "#e3c07a", "hl": "#302d45", "dots": "#566078"
+  }
+ },
+ "clock": { "start": "21:45:09", "rate": 3 },
+ "titlebar": { "text": "~/peracta — zsh — 100x46" },
+ "credit": { "text": "peracta V1.0 vision per docs/FEATURES.md §7 · illustrative roadmap state · all moving numbers simulated", "y": 1486 },
+ "machines": {
+  "events": { "type": "counter", "start": 90412, "rate": 96, "format": "comma" },
+  "fair": {
+   "type": "gauge",
+   "values": [0.41, 0.38, 0.44, 0.29, 0.42, 0.36],
+   "threshold": 0.33, "period": 4.2, "t0": 1.3, "seed": 19,
+   "high": { "label": "fair", "dest": "tenant-B" },
+   "low": { "label": "starved", "dest": "throttle" },
+   "log": {
+    "who": "sched", "c": "bl",
+    "msgs": [
+     "tenant-B share re-rolled",
+     "tenant-C quota respected",
+     "backpressure: queue 41ms"
+    ],
+    "tail": "share={value} {label} → {dest}"
+   }
+  },
+  "wf": {
+   "type": "lane", "period": 8, "run": 5.6, "off": 1.1,
+   "busy": "worker-2 · executing", "done": ["handoff clean"], "phase": 0,
+   "log": { "who": "run", "c": "bl", "msgs": [["lease renewed · fencing #41", ""], ["crash of worker-1 · taken over", ""]] }
+  },
+  "ad": {
+   "type": "lane", "period": 6.5, "run": 4.2, "off": 3.1,
+   "busy": "langgraph · streaming", "done": ["run stored"], "phase": 1,
+   "log": { "who": "ad", "c": "cy", "msgs": [["tool call wrapped → ctx.effect", ""], ["crewai @tool protected", ""]] }
+  },
+  "drill2": {
+   "type": "triggers", "color": "pu", "period": 5.4, "on": 3.0, "t0": -0.6,
+   "callsStart": 3,
+   "items": [
+    { "name": "worker crash", "adv": ["> lease expires →", "> fencing reassign"] },
+    { "name": "unprotected call", "adv": ["> scanner blocks PR →", "> wrap ctx.effect"] },
+    { "name": "egress denied", "adv": ["> sandbox policy →", "> allowlist or abort"] }
+   ],
+   "log": {
+    "who": "drill", "c": "pu",
+    "start": { "m": "{name} · injected" },
+    "end": { "m": "{name} · handled · audited" }
+   }
+  }
+ },
+ "elements": [
+  { "type": "text", "x": 0, "w": 1200, "y": 80, "align": "center", "ls": 1, "runs": [
+    { "t": "PERACTA 毕录", "c": "wh", "b": 1 },
+    { "t": "  ·  ", "c": "dim" },
+    { "t": "FULL VISION", "c": "pu", "b": 1 },
+    { "t": "  ·  ", "c": "dim" },
+    { "t": "V1.0 AFTER ALL EXTENSIONS", "c": "gr", "b": 1 }
+  ] },
+  { "type": "rule", "x": 34, "y": 108, "w": 1132 },
+  { "type": "text", "x": 0, "w": 1200, "y": 141, "align": "center", "runs": [
+    { "sw": "ye" }, { "t": "hosts", "c": "dim" }, { "t": "   ", "c": "dim" },
+    { "sw": "cy" }, { "t": "adapters · journal", "c": "dim" }, { "t": "   ", "c": "dim" },
+    { "sw": "bl" }, { "t": "kernel", "c": "dim" }, { "t": "   ", "c": "dim" },
+    { "sw": "gr" }, { "t": "storage", "c": "dim" }, { "t": "   ", "c": "dim" },
+    { "sw": "pu" }, { "t": "platform", "c": "dim" }
+  ] },
+
+  { "type": "box", "x": 40, "y": 172, "w": 370, "h": 1040, "color": "pu", "pad": [13, 7, 7], "lines": [
+    { "t": "PROD DRILLS", "c": "pu", "b": 1 },
+    { "t": "verify + scanner · on call", "c": "pu" },
+    "",
+    { "t": "one claim, many workers:", "c": "mute" },
+    { "t": "the fence picks the runner.", "c": "mute" },
+    { "t": "unguarded, model-reachable", "c": "mute" },
+    { "t": "calls never merge; sandbox", "c": "mute" },
+    { "t": "denies what is off-list.", "c": "mute" },
+    "",
+    { "align": "left", "indent": 7, "c": "mute", "t": "last drill:" },
+    { "align": "left", "indent": 7, "runs": [{ "v": "drill2.adv0", "c": "pu", "b": 1 }] },
+    { "align": "left", "indent": 7, "runs": [{ "v": "drill2.adv1", "c": "pu", "b": 1 }] },
+    "",
+    "",
+    { "runs": [
+      { "t": "drills ", "c": "mute" },
+      { "v": "drill2.calls", "c": "pu", "b": 1 },
+      { "t": "  ·  dups ", "c": "mute" },
+      { "t": "0", "c": "gr", "b": 1 }
+    ] },
+    "",
+    { "trigger": ["drill2", 0] },
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    { "trigger": ["drill2", 1] },
+    "",
+    "",
+    { "trigger": ["drill2", 2] },
+    ""
+  ] },
+
+  { "type": "tarrow", "machine": "drill2", "i": 0, "from": [410, 677], "to": [455, 677] },
+  { "type": "tarrow", "machine": "drill2", "i": 1, "from": [410, 1075], "to": [455, 1075] },
+  { "type": "tarrow", "machine": "drill2", "i": 2, "from": [410, 1167], "to": [455, 1167] },
+
+  { "type": "box", "x": 460, "y": 172, "w": 680, "h": 110, "color": "ye", "pad": [13, 14, 14], "lines": [
+    { "t": "ENTRY SURFACES", "c": "ye", "b": 1 },
+    { "t": "Claude Code · Qoder · MCP server · CLI", "c": "fg" },
+    { "t": "GitHub Action: PR gate · sticky comment", "c": "dim" }
+  ] },
+  { "type": "box", "x": 460, "y": 298, "w": 680, "h": 150, "color": "cy", "pad": [13, 14, 14], "lines": [
+    { "t": "ADAPTERS · one effect boundary", "c": "cy", "b": 1 },
+    { "t": "LangGraph middleware · crewAI @tool", "c": "fg" },
+    { "t": "OpenAI Agents SDK · self-hosted loops", "c": "fg" },
+    { "t": "TS / Go SDK · log-format parity tests", "c": "fg" }
+  ] },
+  { "type": "box", "x": 460, "y": 464, "w": 680, "h": 410, "color": "bl", "container": true, "pad": [13, 14, 14], "lines": [
+    { "t": "KERNEL · sync core · deps = 0 · MIT", "c": "bl", "b": 1 }
+  ] },
+  { "type": "box", "x": 478, "y": 560, "w": 315, "h": 140, "color": "bl", "pad": [13, 14, 14], "lines": [
+    { "t": "runtime · L3", "c": "bl", "b": 1 },
+    { "runs": [{ "v": "wf" }] },
+    { "t": "resume · replay · timers", "c": "fg" },
+    { "t": "leases + fencing tokens", "c": "fg" }
+  ] },
+  { "type": "box", "x": 813, "y": 560, "w": 315, "h": 140, "color": "gr", "pad": [13, 14, 14], "lines": [
+    { "t": "effect · L2", "c": "gr", "b": 1 },
+    { "runs": [{ "v": "ad" }] },
+    { "t": "claim · saga compensation", "c": "fg" },
+    { "t": "reconcile · human queue", "c": "fg" }
+  ] },
+  { "type": "box", "x": 478, "y": 716, "w": 315, "h": 140, "color": "pu", "pad": [13, 14, 14], "lines": [
+    { "t": "verify · L4", "c": "pu", "b": 1 },
+    { "t": "fault matrix · CI gate", "c": "fg" },
+    { "t": "dups = 0 or the PR fails", "c": "fg" },
+    { "t": "replay diff is semantic", "c": "dim" }
+  ] },
+  { "type": "box", "x": 813, "y": 716, "w": 315, "h": 140, "color": "cy", "pad": [13, 14, 14], "lines": [
+    { "t": "journal · L1 API", "c": "cy", "b": 1 },
+    { "t": "one protocol, N backends", "c": "fg" },
+    { "t": "schema migrations", "c": "fg" },
+    { "t": "hash-chain · Merkle anchor", "c": "dim" }
+  ] },
+  { "type": "box", "x": 460, "y": 890, "w": 680, "h": 150, "color": "gr", "pad": [13, 14, 14], "lines": [
+    { "t": "STORAGE BACKENDS · same consistency suite", "c": "gr", "b": 1 },
+    { "t": "SQLite (single file) · Postgres (prod)", "c": "fg" },
+    { "t": "Redis (low-latency) · ledger service", "c": "fg" },
+    { "t": "group commit · hot-key sharding", "c": "dim" }
+  ] },
+  { "type": "box", "x": 460, "y": 1056, "w": 215, "h": 150, "color": "pu", "pad": [13, 14, 14], "lines": [
+    { "t": "STATIC SCAN", "c": "pu", "b": 1 },
+    { "t": "execution gap", "c": "fg" },
+    { "t": "sink ← taint path", "c": "fg" },
+    { "t": "blocks the PR", "c": "fg" }
+  ] },
+  { "type": "box", "x": 693, "y": 1056, "w": 215, "h": 150, "color": "ye", "pad": [13, 14, 14], "lines": [
+    { "t": "SANDBOX", "c": "ye", "b": 1 },
+    { "t": "cgroup · seccomp", "c": "fg" },
+    { "t": "egress allowlist", "c": "fg" },
+    { "t": "escape tests", "c": "fg" }
+  ] },
+  { "type": "box", "x": 925, "y": 1056, "w": 215, "h": 150, "color": "pu", "pad": [13, 14, 14], "lines": [
+    { "t": "ARBITRATION", "c": "pu", "b": 1 },
+    { "t": "human queue", "c": "fg" },
+    { "t": "signed sign-off", "c": "fg" },
+    { "t": "audit trail", "c": "fg" }
+  ] },
+
+  { "type": "line", "from": [800, 282], "to": [800, 298] },
+  { "type": "line", "from": [800, 448], "to": [800, 464] },
+  { "type": "line", "from": [800, 874], "to": [800, 890] },
+  { "type": "line", "from": [568, 1040], "to": [568, 1056] },
+  { "type": "line", "from": [800, 1040], "to": [800, 1056] },
+  { "type": "line", "from": [1032, 1040], "to": [1032, 1056] },
+
+  { "type": "flow", "path": [[800, 282], [800, 298]], "period": 1.4, "offsets": [0], "color": "ye" },
+  { "type": "flow", "path": [[800, 448], [800, 464]], "period": 1.6, "offsets": [0.4], "color": "cy" },
+  { "type": "flow", "path": [[800, 874], [800, 890]], "period": 1.8, "offsets": [0.2], "color": "bl" },
+  { "type": "flow", "path": [[568, 1040], [568, 1056]], "period": 2.4, "offsets": [0.1], "color": "pu" },
+  { "type": "flow", "path": [[800, 1040], [800, 1056]], "period": 2.1, "offsets": [0.7], "color": "ye" },
+  { "type": "flow", "path": [[1032, 1040], [1032, 1056]], "period": 2.6, "offsets": [0.3], "color": "pu" },
+
+  { "type": "line", "from": [1155, 965], "to": [1155, 670], "dash": true },
+  { "type": "line", "from": [1155, 965], "to": [1140, 965] },
+  { "type": "line", "from": [1155, 670], "to": [1140, 670] },
+  { "type": "glyph", "x": 1146, "y": 670, "ch": "◀", "c": "gr" },
+  { "type": "flow", "path": [[1140, 965], [1155, 965], [1155, 670], [1140, 670]], "period": 3.0, "offsets": [0.4, 1.9], "color": "gr" },
+
+  { "type": "log", "x": 40, "y": 1246, "w": 1130, "rows": 4, "padTop": 16, "padBottom": 29, "padLeft": 20,
+    "title": "kernel log", "titleX": 38, "titleW": 179,
+    "cols": [ { "key": "time", "x": 0 }, { "key": "who", "x": 126 }, { "key": "m", "x": 266 }, { "key": "g", "x": 700 } ] },
+
+  { "type": "text", "x": 34, "y": 1430, "runs": [
+    { "t": "~/peracta $", "c": "gr", "b": 1 },
+    { "t": " peracta " },
+    { "t": "verify", "c": "ye" },
+    { "t": " --fault crash,partition --repeat 500" },
+    { "cursor": true, "c": "gr" }
+  ] },
+  { "type": "text", "x": 34, "y": 1461, "runs": [
+    { "t": "deps ", "c": "dim" }, { "t": "0", "c": "gr", "b": 1 },
+    { "t": "  adapters ", "c": "dim" }, { "t": "[5]", "c": "cy", "b": 1 },
+    { "t": "  backends ", "c": "dim" }, { "t": "[4]", "c": "gr", "b": 1 },
+    { "t": "  langs ", "c": "dim" }, { "t": "[3]", "c": "cy", "b": 1 },
+    { "t": "  events ", "c": "dim" }, { "v": "events", "c": "gr", "b": 1 },
+    { "t": "  dups ", "c": "dim" }, { "t": "[0]", "c": "gr", "b": 1 }
+  ] }
+ ]
+}

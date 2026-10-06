@@ -29,7 +29,7 @@ peracta/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── dependabot.yml
 │
-├── docs/                       # 四份规格文档 + adr/（决策记录，首篇落地时建），清单见 PROJECT.md §7
+├── docs/                       # 四份规格文档 + adr/ + assets/（面板图·配置源），清单见 PROJECT.md §7
 │
 ├── examples/                   # 可运行示例；含一个"故意坏掉"的反例
 │
