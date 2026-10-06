@@ -84,17 +84,17 @@ peracta verify examples/refund_agent.py --fault crash --at every-step --repeat 5
 
 ## Status
 
-**This repository has no runnable code yet — by design: lock the constraints first, then write the kernel.**
+**The kernel's three layers (core / journal / runtime) have landed with all 99 tests green; the CLI and fault-injection verification come next.**
 
 | Task card | Scope | Status |
 |---|---|---|
-| T1 | Skeleton: pyproject / src / pytest / ruff / CI | ⬜ |
-| T2 | SQLite event journal (runs / events / claims) | ⬜ |
-| T3 | Step recording + resume skipping done steps | ⬜ |
+| T1 | Skeleton: pyproject / src / pytest / ruff / CI | ✅ |
+| T2 | SQLite event journal (runs / events; claims deferred to T4 by plan) | ✅ |
+| T3 | Step recording + resume skipping done steps | 🔶 library level done, CLI pending |
 | T4 | Effect idempotency (claim first) + reconcile for unknown states | ⬜ |
 | T5 | verify fault injection + the deliberately broken counterexample | ⬜ |
 
-Done: V0.1 definition and structure locked (four spec documents), target-state panel diagrams, collaboration guidelines.
+Done: four spec documents, target-state panel diagrams, collaboration guidelines; the kernel layers `@flow` / `Context.step` / resumable `execute`, the SQLite event journal, architecture guards and 99 tests.
 
 ## Documentation
 

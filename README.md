@@ -84,17 +84,17 @@ peracta verify examples/refund_agent.py --fault crash --at every-step --repeat 5
 
 ## 当前状态
 
-**本仓库目前没有可运行的代码 —— 这是有意的：先锁约束，再写内核。**
+**内核三层（core / journal / runtime）已落地，99 项测试全绿；CLI 与故障注入验证还在后面。**
 
 | 任务卡 | 内容 | 状态 |
 |---|---|---|
-| T1 | 骨架：pyproject / src / pytest / ruff / CI | ⬜ |
-| T2 | SQLite 事件日志（runs / events / claims） | ⬜ |
-| T3 | step 录制 + resume 跳过已完成步骤 | ⬜ |
+| T1 | 骨架：pyproject / src / pytest / ruff / CI | ✅ |
+| T2 | SQLite 事件日志（runs / events；claims 按计划延至 T4） | ✅ |
+| T3 | step 录制 + resume 跳过已完成步骤 | 🔶 库层面完成，CLI 待做 |
 | T4 | effect 幂等（先留凭据）+ reconcile 未知态 | ⬜ |
 | T5 | verify 故障注入 + 故意坏掉的反例 | ⬜ |
 
-已完成：V0.1 定义与结构锁定（四份规格文档）、目标态面板图、协作准则。
+已完成：四份规格文档、目标态面板图、协作准则；`@flow` / `Context.step` / 可续跑 `execute` 三层内核、SQLite 事件日志、架构守卫与 99 项测试。
 
 ## 文档
 
